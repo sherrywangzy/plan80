@@ -27,8 +27,8 @@ command to see your week.
 
 ### Option A: Cowork (no terminal)
 
-1. Download `plan80.plugin` from the file card in Cowork.
-2. Open it and accept the plugin with the button.
+1. Download [`dist/plan80.plugin`](dist/plan80.plugin) from this repo (on the file page, choose **Download raw file**).
+2. Open the file in Cowork and accept the plugin with the button.
 3. Ask: "Plan my next week with Plan80."
 
 If your organization controls which plugins are allowed, an admin may need to approve it first.
