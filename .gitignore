@@ -1,0 +1,9 @@
+private/
+evals/.out/
+plan.json
+out/
+__pycache__/
+.env
+.env.*
+*.local.*
+.DS_Store

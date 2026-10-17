@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege: this workflow can only read the repo.
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fail if personal data is committed
+        run: |
+          if [ -e private ] && git ls-files --error-unmatch private >/dev/null 2>&1; then
+            echo "private/ must never be committed"; exit 1; fi
+          if git ls-files | grep -E '(^|/)(life|plan)\.json$'; then
+            echo "personal config committed"; exit 1; fi
+      - name: Run eval suite (scheduling, constraints, priority, sick mode, privacy, retrieval)
+        run: python3 evals/run_evals.py
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: evals/RESULTS.md

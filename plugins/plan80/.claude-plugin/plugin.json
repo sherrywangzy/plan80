@@ -1,0 +1,10 @@
+{
+  "name": "plan80",
+  "version": "0.1.0",
+  "description": "Plan a realistic week around a top-priority health goal. Priority tiers, sick-week mode, color-coded week view and calendar files for work, personal and family.",
+  "author": { "name": "Sherry Wang" },
+  "homepage": "https://github.com/sherrywangzy/plan80",
+  "repository": "https://github.com/sherrywangzy/plan80",
+  "license": "MIT",
+  "keywords": ["planning", "time-blocking", "priorities", "calendar", "health", "sick-week"]
+}

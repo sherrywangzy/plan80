@@ -1,0 +1,13 @@
+{
+  "name": "plan80",
+  "owner": { "name": "Sherry Wang" },
+  "metadata": { "description": "Plan80 planning skills" },
+  "plugins": [
+    {
+      "name": "plan80",
+      "source": "./plugins/plan80",
+      "description": "Plan a realistic week: priority tiers, sick-week mode, color-coded week view and calendar files.",
+      "version": "0.1.0"
+    }
+  ]
+}
