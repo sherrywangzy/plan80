@@ -224,6 +224,173 @@ CASES = [
     ("X1", "Work calendar shows only Personal hold", case_work_calendar_is_private),
     ("X2", "Personal calendar keeps real titles", case_personal_calendar_keeps_titles),
 ]
+# ---- appointments, holidays, tracking ----------------------------------------
+
+import tempfile  # noqa: E402
+from datetime import date  # noqa: E402
+
+import holidays as hol  # noqa: E402
+import tracker  # noqa: E402
+
+SAMPLE_ICS = ROOT / "examples" / "google-calendar" / "mock-holidays-sample.ics"
+
+
+def case_appointment_carves_work():
+    plan = generate(GOLDEN)
+    thu = sorted((e["start"][-5:], e["end"][-5:]) for e in plan["events"]
+                 if e["area"] == "work" and e["day"] == "thu")
+    ok = ("13:30", "14:00") in thu and ("15:00", "17:00") in thu and not any(
+        s < "15:00" and e > "14:00" and s >= "14:00" for s, e in thu)
+    return ok, f"Thu work segments {thu}"
+
+
+def case_appointment_is_personal_hold_at_work():
+    plan = generate(GOLDEN)
+    appt = [e for e in plan["events"] if e["area"] == "appointments"]
+    flagged = bool(appt) and all(e.get("hold_on_work") for e in appt)
+    tmp = OUT / "appt"
+    tmp.mkdir(parents=True, exist_ok=True)
+    (tmp / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
+    subprocess.run([sys.executable, str(PLUGIN / "scripts" / "render.py"),
+                    str(tmp / "plan.json"), "--out", str(tmp)], capture_output=True)
+    work_ics = (tmp / "work.ics").read_text(encoding="utf-8") if (tmp / "work.ics").exists() else ""
+    ok = flagged and "Dr appointment" not in work_ics and "Personal hold" in work_ics
+    return ok, f"{len(appt)} appointment(s), hold_on_work={flagged}, title hidden from work calendar"
+
+
+def case_thanksgiving_drops_work_only():
+    cfg = copy.deepcopy(GOLDEN)
+    cfg["week_of"] = "2026-11-23"
+    plan = generate(cfg)
+    thu_work = [e for e in plan["events"] if e["area"] == "work" and e["day"] == "thu"]
+    reasons = [d["reason"] for d in plan["dropped"] if "Thanksgiving" in d["reason"]]
+    health_thu = [e for e in plan["events"] if e["area"] == "health" and e["day"] == "thu"]
+    notes = any("Thanksgiving" in n for n in plan["notes"])
+    ok = not thu_work and len(reasons) >= 1 and len(health_thu) == 1 and notes
+    return ok, f"work dropped with {len(reasons)} reason(s), health kept Thu={len(health_thu) == 1}"
+
+
+def case_holiday_from_ics_file():
+    cfg = copy.deepcopy(GOLDEN)
+    cfg["week_of"] = "2026-11-23"
+    cfg["holidays"] = {"country": "", "ics_files": [str(SAMPLE_ICS)]}
+    plan = generate(cfg)
+    thu_work = [e for e in plan["events"] if e["area"] == "work" and e["day"] == "thu"]
+    ok = not thu_work and any("Thanksgiving" in n for n in plan["notes"])
+    return ok, f"ICS holiday removes Thu work: {not thu_work}"
+
+
+def case_no_holiday_in_normal_week():
+    plan = generate(GOLDEN)
+    ok = not any("Public holiday" in n for n in plan["notes"]) and not plan["dropped"]
+    return ok, "week of 2026-10-19 has no holiday and no drops"
+
+
+def case_us_federal_rules_2026():
+    h = hol.us_federal(2026)
+    expect = {
+        date(2026, 1, 19): "Martin Luther King Jr. Day",
+        date(2026, 2, 16): "Presidents' Day",
+        date(2026, 5, 25): "Memorial Day",
+        date(2026, 7, 3): "Independence Day",
+        date(2026, 9, 7): "Labor Day",
+        date(2026, 10, 12): "Columbus Day",
+        date(2026, 11, 26): "Thanksgiving Day",
+    }
+    bad = {str(d): h.get(d) for d, n in expect.items() if h.get(d) != n}
+    return not bad, f"{len(expect) - len(bad)}/{len(expect)} dates correct, misses={bad or 'none'}"
+
+
+def case_ics_parser_reads_all_day_events():
+    got = hol.from_ics(SAMPLE_ICS)
+    return got == {date(2026, 11, 26): "Thanksgiving Day"}, f"parsed {len(got)} event(s)"
+
+
+def _tracker_cfg(**projects_override) -> dict:
+    cfg = copy.deepcopy(GOLDEN)
+    cfg["projects"] = [{"id": "p", "name": "Test project", "area": "content",
+                        "due": "2026-11-30", "estimate_hours": 10, **projects_override}]
+    return cfg
+
+
+def _log(entries: list[dict]) -> list[dict]:
+    return entries
+
+
+def case_tracker_on_track():
+    cfg = _tracker_cfg()
+    log = _log([{"date": "2026-10-10", "area": "content", "minutes": 90, "project": "p"},
+                {"date": "2026-10-14", "area": "content", "minutes": 90, "project": "p"},
+                {"date": "2026-10-03", "area": "content", "minutes": 90, "project": "p"}])
+    res = tracker.analyze(cfg, log, date(2026, 10, 16))
+    row = res["projects"][0]
+    return row["verdict"] == "on_track", f"verdict={row['verdict']}, pace={row['actual_pace']}h/wk"
+
+
+def case_tracker_plan_gap():
+    cfg = _tracker_cfg(estimate_hours=30)
+    res = tracker.analyze(cfg, [], date(2026, 10, 16))
+    row = res["projects"][0]
+    gap_rec = any("Move the due date" in r for r in res["recommendations"])
+    return row["verdict"] == "plan_gap" and gap_rec, f"verdict={row['verdict']}, needs {row['needed_pace']}h/wk"
+
+
+def case_tracker_overdue():
+    cfg = _tracker_cfg(due="2026-10-01")
+    res = tracker.analyze(cfg, [], date(2026, 10, 16))
+    return res["projects"][0]["verdict"] == "overdue", f"verdict={res['projects'][0]['verdict']}"
+
+
+def case_tracker_done():
+    cfg = _tracker_cfg(estimate_hours=2)
+    log = [{"date": "2026-10-15", "area": "content", "minutes": 120, "project": "p"}]
+    res = tracker.analyze(cfg, log, date(2026, 10, 16))
+    return res["projects"][0]["verdict"] == "done", f"verdict={res['projects'][0]['verdict']}"
+
+
+def case_tracker_never_cuts_health():
+    res = tracker.analyze(copy.deepcopy(GOLDEN), [], date(2026, 10, 16))
+    health_recs = [r for r in res["recommendations"] if r.startswith("Health")]
+    ok = bool(health_recs) and all("Keep the number of sessions" in r for r in health_recs)
+    return ok, f"{len(health_recs)} health recommendation(s), none reduce the target"
+
+
+def case_tracker_rejects_unknown_area():
+    path = OUT / "eval-log.jsonl"
+    path.unlink(missing_ok=True)
+    try:
+        tracker.append_entry(path, GOLDEN, "crypto", 60, "2026-10-14", None, None)
+    except tracker.TrackerError as exc:
+        return not path.exists(), f"rejected: {exc}"
+    return False, "no error raised"
+
+
+def case_tracker_log_roundtrip():
+    path = OUT / "eval-log.jsonl"
+    path.unlink(missing_ok=True)
+    tracker.append_entry(path, GOLDEN, "health", 90, "2026-10-14", None, "lunch run")
+    entries = tracker.load_log(path)
+    ok = len(entries) == 1 and entries[0]["minutes"] == 90 and entries[0]["note"] == "lunch run"
+    return ok, f"{len(entries)} entry saved"
+
+
+NEW_CASES = [
+    ("A1", "Appointment carves the work block around it", case_appointment_carves_work),
+    ("A2", "Appointment shows as Personal hold on work calendar", case_appointment_is_personal_hold_at_work),
+    ("H1", "Thanksgiving removes work only, health kept", case_thanksgiving_drops_work_only),
+    ("H2", "Holiday from an .ics file removes work", case_holiday_from_ics_file),
+    ("H3", "No holiday in a normal week", case_no_holiday_in_normal_week),
+    ("H4", "US federal rules, observed dates, 2026", case_us_federal_rules_2026),
+    ("H5", "ICS parser reads all-day events", case_ics_parser_reads_all_day_events),
+    ("T1", "Tracker: on track when pace meets need", case_tracker_on_track),
+    ("T2", "Tracker: plan gap is flagged with a new date", case_tracker_plan_gap),
+    ("T3", "Tracker: past due date is overdue", case_tracker_overdue),
+    ("T4", "Tracker: finished project is done", case_tracker_done),
+    ("T5", "Tracker: never recommends cutting health", case_tracker_never_cuts_health),
+    ("T6", "Tracker: rejects an unknown area", case_tracker_rejects_unknown_area),
+    ("T7", "Tracker: log entry round-trips", case_tracker_log_roundtrip),
+]
+
 # ---- plugin packaging -------------------------------------------------------
 
 def case_marketplace_lists_plugin():
@@ -279,6 +446,8 @@ CASES += [
     ("K6", "Plugin ships no personal data", case_plugin_has_no_personal_data),
     ("K7", "Plan opens itself in the browser", case_render_can_open_week),
 ]
+
+CASES += NEW_CASES
 
 for i, (q, expected) in enumerate(RETRIEVAL, start=1):
     CASES.append((f"R{i}", f"Retrieve '{expected}' for: {q}",

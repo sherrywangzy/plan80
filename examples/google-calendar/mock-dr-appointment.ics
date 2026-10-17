@@ -1,0 +1,12 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//plan80//mock//EN
+BEGIN:VEVENT
+UID:mock-dr-appointment-2026-10-22@plan80
+DTSTAMP:20261016T000000Z
+DTSTART;TZID=America/Los_Angeles:20261022T140000
+DTEND;TZID=America/Los_Angeles:20261022T150000
+SUMMARY:Dr appointment (mock)
+DESCRIPTION:Mock appointment for the Plan80 example. Replace with your own.
+END:VEVENT
+END:VCALENDAR

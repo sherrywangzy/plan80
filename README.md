@@ -2,7 +2,7 @@
 
 **Plan only 80% of your week. Protect health first, then fit everything else around it.**
 
-Plan80 is a plugin with four skills that plans a realistic week for someone with a full-time
+Plan80 is a plugin with six skills that plans a realistic week for someone with a full-time
 job, a degree, a health goal, family, daily practice and a growth project. It sorts every
 commitment by priority, drops the lowest-priority blocks first when the week overflows, and
 turns a sick week into a plan.
@@ -17,6 +17,8 @@ turns a sick week into a plan.
 | `plan80-sick-day` | Someone at home is sick and the week needs replanning |
 | `plan80-why` | You want to know why a block was dropped, or what the rule is |
 | `plan80-weekly-review` | Sunday check-in: planned vs. done, and small adjustments |
+| `plan80-log` | You just worked on something and want it recorded |
+| `plan80-progress` | Are you on track for a due date, and is next week's plan realistic |
 
 Each skill runs its own commands and opens the result in your browser. You never type a
 command to see your week.
@@ -61,10 +63,21 @@ Full rules: [planning rules](plugins/plan80/references/planning-rules.md). Desig
 
 ## Tested
 
-27 acceptance cases cover scheduling, constraints, priority, sick mode, privacy, retrieval
-and plugin packaging. Results are in [`evals/RESULTS.md`](evals/RESULTS.md). Retrieval was
+41 acceptance cases cover scheduling, constraints, priority, sick mode, privacy, appointments,
+public holidays, progress tracking, retrieval and plugin packaging. Results are in [`evals/RESULTS.md`](evals/RESULTS.md). Retrieval was
 tuned on five questions and checked on two held-out ones; one held-out question still misses,
 and the results file says so.
+
+## Appointments, holidays and progress
+
+- **Google Calendar**: connect it once with your own Google sign-in. Fixed appointments
+  split work blocks, and show as "Personal hold" on the work calendar. See
+  [`examples/google-calendar`](examples/google-calendar/README.md).
+- **Public holidays**: US federal holidays are built in. Any other country comes from an
+  .ics file. A holiday removes that day's work blocks and says so in the notes.
+- **Progress**: `plan80-log` records time against areas and projects. `plan80-progress`
+  shows the forecast finish for each project and suggests changes for next week. Health
+  and school are never cut automatically.
 
 ## Limits
 

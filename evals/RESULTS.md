@@ -1,6 +1,6 @@
 # Plan80 eval results
 
-**26/27 passing.** Retrieval: 6/7 (target 4 of 5; R1-R5 tuned, R6-R7 held out). Scheduling, constraints, priority, sick mode and privacy must be 100%.
+**40/41 passing.** Retrieval: 6/7 (target 4 of 5; R1-R5 tuned, R6-R7 held out). Scheduling, constraints, priority, sick mode and privacy must be 100%.
 
 | ID | Result | Case | Detail |
 | --- | --- | --- | --- |
@@ -21,9 +21,23 @@
 | X2 | PASS | Personal calendar keeps real titles | titles present on personal.ics |
 | K3 | PASS | Marketplace lists the plugin | marketplace entries: ['plan80'] |
 | K4 | PASS | Plugin manifest is valid | name='plan80', version='0.1.0' |
-| K5 | PASS | Every skill has matching name and description | 4 skills, problems=none |
+| K5 | PASS | Every skill has matching name and description | 6 skills, problems=none |
 | K6 | PASS | Plugin ships no personal data | personal or generated files in plugin: none |
 | K7 | PASS | Plan opens itself in the browser | render.py --open flag available |
+| A1 | PASS | Appointment carves the work block around it | Thu work segments [('09:00', '12:00'), ('13:30', '14:00'), ('15:00', '17:00')] |
+| A2 | PASS | Appointment shows as Personal hold on work calendar | 1 appointment(s), hold_on_work=True, title hidden from work calendar |
+| H1 | PASS | Thanksgiving removes work only, health kept | work dropped with 2 reason(s), health kept Thu=True |
+| H2 | PASS | Holiday from an .ics file removes work | ICS holiday removes Thu work: True |
+| H3 | PASS | No holiday in a normal week | week of 2026-10-19 has no holiday and no drops |
+| H4 | PASS | US federal rules, observed dates, 2026 | 7/7 dates correct, misses=none |
+| H5 | PASS | ICS parser reads all-day events | parsed 1 event(s) |
+| T1 | PASS | Tracker: on track when pace meets need | verdict=on_track, pace=2.25h/wk |
+| T2 | PASS | Tracker: plan gap is flagged with a new date | verdict=plan_gap, needs 4.67h/wk |
+| T3 | PASS | Tracker: past due date is overdue | verdict=overdue |
+| T4 | PASS | Tracker: finished project is done | verdict=done |
+| T5 | PASS | Tracker: never recommends cutting health | 1 health recommendation(s), none reduce the target |
+| T6 | PASS | Tracker: rejects an unknown area | rejected: unknown area 'crypto'. Use one of: work, family, me, buffer, health, trading, school, content, appointments |
+| T7 | PASS | Tracker: log entry round-trips | 1 entry saved |
 | R1 | PASS | Retrieve 'Sick mode' for: my kid is sick, what do I cut? | top3=["7. RAG: answering from the user's own rules", '4. Sick mode', '1. Problem'] |
 | R2 | PASS | Retrieve 'Capacity math' for: how many hours can I plan in a week | top3=['4. Sick mode', '1. Capacity math (do this before placing anything)', '1. Problem'] |
 | R3 | PASS | Retrieve 'Placement order' for: when should I do homework before a deadline | top3=['2. Placement order', '4. Sick mode', '3. Energy matching'] |

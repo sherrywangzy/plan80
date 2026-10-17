@@ -27,8 +27,13 @@ If `~/Plan80/life.json` doesn't exist:
 ## 2. Each week
 
 1. Work out the upcoming Monday (today's date decides it) and set `week_of`.
-2. Ask one question: **"Anything changed this week? Sick days, deadlines, travel?"**
+2. Ask one question: **"Anything changed this week? Sick days, deadlines, travel, appointments?"**
    Add sick days to `sick_days` (see `plan80-sick-day`).
+   If the Google Calendar connector is connected, list this week's events and ask which
+   are fixed appointments. Add those to `appointments` (date, start, end, title). Never
+   copy other events. Setup guide: github.com/sherrywangzy/plan80 (folder `examples/google-calendar`).
+   Public holidays come from `holidays` in the config (`country`, plus any `ics_files`).
+   On a holiday, work blocks are removed with the reason in the notes.
 3. Generate and open the week, in one step:
    ```bash
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/plan_generator.py" ~/Plan80/life.json -o ~/Plan80/plan.json
